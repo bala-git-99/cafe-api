@@ -23,6 +23,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cafes.db'
 db = SQLAlchemy()
 db.init_app(app)
 
+API_KEY = "TopSecretAPIKey"
+
 
 # Cafe TABLE Configuration
 class Cafe(db.Model):
@@ -94,7 +96,7 @@ def add_a_cafe():
 
 @app.route("/update-price/<int:cafe_id>", methods=["PATCH"])
 def update_price(cafe_id):
-    cafe_to_update = db.get_or_404(Cafe, cafe_id)
+    cafe_to_update = db.session.get(Cafe, cafe_id)
     new_price = request.args.get("new_price")
     if not cafe_to_update:
         error_msg = "Sorry, a cafe with that id was not found in the database."
@@ -110,6 +112,21 @@ def update_price(cafe_id):
         db.session.commit()
         return jsonify(response={"success": "Successfully updated the price."}), 200
 
+
+@app.route("/report-closed/<int:cafe_id>", methods=["DELETE"])
+def delete_cafe(cafe_id):
+    cafe_to_delete = db.session.get(Cafe, cafe_id)
+    input_key = request.args.get("api-key")
+    if not cafe_to_delete:
+        error_msg = "Sorry, a cafe with that id was not found in the database."
+        return jsonify(error={"Not Found": error_msg}), 404
+    elif input_key != API_KEY:
+        error_msg = "Sorry, that's not allowed. Make sure you have the correct api_key."
+        return jsonify(error={"Forbidden": error_msg}), 403
+    else:
+        db.session.delete(cafe_to_delete)
+        db.session.commit()
+        return jsonify(response={"success": "Successfully delete the cafe from database."}), 200
 
 # HTTP GET - Read Record
 
